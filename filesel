@@ -1,13 +1,13 @@
 #!/usr/bin/env rc
 
-# Select a file from the file system, using [`dmenu`][] to query the user
+# Select a file from the file system, using [`dmenu`][1] to query the user
 # at each step.  Has minimal error checking and cannot be used to
 # select directories, only files.
 #
 # Usage: `filesel [DIR]`, with the default being the current working
 # directory.
 #
-# [`dmenu`]: http://tools.suckless.org/dmenu/
+# [1]: http://tools.suckless.org/dmenu/
 
 # We start looking from either the first argument or the current directory.
 if (test $#* -lt 1) tgt=`{pwd}
