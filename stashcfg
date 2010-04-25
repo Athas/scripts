@@ -6,8 +6,8 @@
 
 flag e +
 
-if (test $#* -lt 2) {
-   echo Usage: $0 program file >[2=1]
+if (test $#* -ne 2) {
+   echo Usage: `{basename $0} progname file >[2=1]
    exit
 }
 if (~ $#XDG_CONFIG_HOME 0) dir=$home/.config/$1
