@@ -1,0 +1,26 @@
+#!/usr/bin/env rc
+
+# Extract code blocks from Literate Haskell files and print them on
+# standard output.
+#
+# Blank lines will be used to separate logical code blocks (sequences
+# of lines starting with `>`, or `\begin{code}`/`\end{code}` pairs),
+# but the contents of the blocks are printed verbatim.
+#
+# Usage: `lhscode [file ...]`, reading from standard input if no files
+# are provided.
+
+flag e +
+
+cat $* | awk '
+BEGIN {incode=0; inbird=0; was=0}
+/^\\begin{code}[ ]*$/ { if (was==1) print ""; was=1; incode=1; next; }
+/^\\end{code}[ ]*$/   { incode=0;}
+/^> (.*)$/            {
+    if (incode==0) {
+       if (was==1) { print ""; was=0; }
+       inbird=1; print substr($0, 3, length($0)-2); next;
+    }
+}
+{ if (incode==1) { print $0; }
+  else if (inbird==1) { print ""; inbird=0; }  }'
