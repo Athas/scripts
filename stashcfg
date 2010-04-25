@@ -1,0 +1,26 @@
+#!/usr/bin/env rc
+
+# Given a program name and a configuration file name, copy the the
+# file to the proper XDG directory and set up a symlink at its
+# original location.
+
+flag e +
+
+if (test $#* -lt 2) {
+   echo Usage: $0 program file >[2=1]
+   exit
+}
+if (~ $#XDG_CONFIG_HOME 0) dir=$home/.config/$1
+if not dir=$XDG_CONFIG_HOME/$1
+
+mkdir -p $dir
+
+if (test ! -r $2) {
+   echo Cannot read from $2
+   exit
+}
+sfile=$2
+tfile=$dir/`{echo `{basename $sfile}|sed 's/^\.//'} # Remove leading punctuation
+
+mv $sfile $tfile
+ln -s $tfile $sfile

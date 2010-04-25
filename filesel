@@ -1,0 +1,23 @@
+#!/usr/bin/env rc
+
+# File selection script using dmenu.  Has minimal error checking and
+# cannot be used to select directories, only files.
+
+# We start looking from either the first argument or the current directory.
+if (test $#* -lt 1) tgt=`{pwd}
+if not {
+   if (test -d $1) tgt=$1
+   if not echo $1 is not a directory >[1=2]; exit 2
+}
+
+# We can't use ls -a because we don't want '.'.
+fn list { echo ..; ls $1 }
+
+# Loop until a file has been chosen...
+while (test -d $tgt) {
+    res=`{list $tgt|dmenu}
+    # Die if dmenu (or listing) failed.
+    if (! ~ $status '') exit 1
+    tgt=`{realpath $tgt/$res}
+}
+echo $tgt
