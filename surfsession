@@ -1,0 +1,84 @@
+#!/usr/bin/env rc
+
+# Simplistic session management for `surf`.
+#
+# Only URLs are remembered, no cookie, HTTP session, or browsing
+# history is stored.  The script is supposed to be called
+# automatically by `surf` to update URL data, and by user commands to
+# resume them.  File locking via `flock` is used to ensure atomicity
+# of modifications to `.surf/sessions`.
+#
+# An URL is considered an "orphan" if its listed PID no longer
+# refers to a live process.
+#
+# The first argument to `surfsession` indicates the action to be
+# taken, with the following actions being supported:
+#
+# * `add _pid_ _url_`: store `_url_` as being browsed by the process
+#   `_pid_`.
+#
+# * `remove _pid_ _url_`: remove any `_url_` being browsed by `_pid_`.
+#
+# * `purge _url_`: remove any `_url_` being browse by any process.
+#
+# * `restore`: start `surf` for all orphan URLs.
+#
+# * `resume`: use `dmenu` to select an orphan URL, which will be
+#   opened in `surf`.
+
+# Uses 9base/plan9port commands.
+9base=$PLAN9
+path=($9base/bin $path)
+
+# dmenu setup shamelessly cribbed from surf.sh.
+font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
+normbgcolor='#181818'
+normfgcolor='#e9e9e9'
+selbgcolor='#dd6003'
+selfgcolor='#e9e9e9'
+dmenu=(dmenu -fn $font -nb $normbgcolor -nf $normfgcolor \
+       -sb $selbgcolor -sf $selfgcolor -l 10 -b)
+
+fn escape {
+   # Make URL safe as target for sed.
+   echo $1 | sed 's,\[|\]|\?|\+|\*|\.|\(|\)|\\|\|\||/,\\&,g'
+}
+
+fn orphans {
+   awk '{ if (system("test -d /proc/"$1)) { print $2 }}' $sessionfile
+}
+
+sessionfile=$home/.surf/sessions
+
+if (touch $sessionfile) {
+   # We translate command foo to foo-locked surrounded by locking of
+   # $sessionfile.
+   switch ($1) {
+       case add-locked
+          echo $2 $3 >> $sessionfile
+       case remove-locked
+          {echo 'g/'^$2^' '^`{escape $3}^'/d'; echo 'w '^$sessionfile} | ed $sessionfile
+       case purge-locked
+          {echo 'g/'`{escape $2}^'/d'; echo 'w '^$sessionfile} | ed $sessionfile
+       case restore-locked
+          echo `{orphans}
+          for (url in `{orphans}) { surf $url & }
+          rm $sessionfile
+       case resume-locked
+           res=`{orphans|$dmenu}
+           if (! ~ $status '') exit 1
+           $0 purge-locked $res && surf $res &
+       # Don't deadlock on unknown commands...
+       case *-locked
+          exit 1
+       # Wrap a command in file locking and rerun the script.
+       case *
+          cmd=$1-locked
+          shift
+          flock -o $sessionfile -c $0^' '^$cmd^' '^$"*
+   }
+}
+if not {
+    echo 'Cannot write to '$sessionfile >[1=2]
+    exit 1
+}
