@@ -14,12 +14,12 @@
 # The first argument to `surfsession` indicates the action to be
 # taken, with the following actions being supported:
 #
-# * `add _pid_ _url_`: store `_url_` as being browsed by the process
+# * `add` pid url: store _url_ as being browsed by the process
 #   `_pid_`.
 #
-# * `remove _pid_ _url_`: remove any `_url_` being browsed by `_pid_`.
+# * `remove` _pid_ _url_: remove any _url_ being browsed by _pid_.
 #
-# * `purge _url_`: remove any `_url_` being browse by any process.
+# * `purge` _url_: remove any _url_ being browsed by any process.
 #
 # * `restore`: start `surf` for all orphan URLs.
 #
