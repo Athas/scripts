@@ -14,7 +14,7 @@
 # The first argument to `surfsession` indicates the action to be
 # taken, with the following actions being supported:
 #
-# * `add` pid url: store _url_ as being browsed by the process
+# * `add` _pid_ _url_: store _url_ as being browsed by the process
 #   `_pid_`.
 #
 # * `remove` _pid_ _url_: remove any _url_ being browsed by _pid_.
