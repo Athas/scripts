@@ -40,8 +40,8 @@ dmenu=(dmenu -fn $font -nb $normbgcolor -nf $normfgcolor \
        -sb $selbgcolor -sf $selfgcolor -l 10 -b)
 
 fn escape {
-   # Make URL safe as target for sed.
-   echo $1 | sed 's,\[|\]|\?|\+|\*|\.|\(|\)|\\|\|\||/,\\&,g'
+   # Make URL safe as target for ed.
+   echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g'
 }
 
 fn orphans {
