@@ -57,9 +57,11 @@ if (touch $sessionfile) {
        case add-locked
           echo $2 $3 >> $sessionfile
        case remove-locked
-          {echo 'g/'^$2^' '^`{escape $3}^'/d'; echo 'w '^$sessionfile} | ed $sessionfile
+          {echo 'g/'^$2^' '^`{escape $3}^'/d'; echo 'w '^$sessionfile}\
+          | ed $sessionfile >[2] /dev/null
        case purge-locked
-          {echo 'g/'`{escape $2}^'/d'; echo 'w '^$sessionfile} | ed $sessionfile
+          {echo 'g/'`{escape $2}^'/d'; echo 'w '^$sessionfile}\
+          | ed $sessionfile >[2] /dev/null
        case restore-locked
           echo `{orphans}
           for (url in `{orphans}) { surf $url & }
