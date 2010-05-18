@@ -1,6 +1,6 @@
 #!/usr/bin/env rc
 
-# Manipulate `surf` via dmenu-based interface.
+# Manipulate `surf` via `dmenu`-based interface.
 #
 # This script does:
 #  * stores history of: (1) successful URI entries; (2) certain smart prefix entries, e.g., "g foobar"; (3) find entries
@@ -10,29 +10,29 @@
 #  * delete (with smart prefix `x`)
 #  * searching in page text (slightly broken)
 #
-# Usage: `surfbrowse` _xid_ _action
+# Usage: `surfbrowse` _xid_ _action_
 #
 # _action_ must be one of `find`, `bookmark`, `go`, `go_raw`, `info`.
 #
 # To install, add the following to your `config.h`:
 #
-#   #define BROWSE(p) { .v = (char *[]){ "/bin/sh", "-c", "surfbrowse $1 $0", p, winid, NULL } }
+#     #define BROWSE(p) { .v = (char *[]){ "/bin/sh", "-c", "surfbrowse $1 $0", p, winid, NULL } }
 #
 # Then add some bindings to your keylist, for example the following:
 #
-#   { GDK_CONTROL_MASK,               GDK_s,      spawn,      BROWSE("find") },
-#   { 0,                              GDK_g,      spawn,      BROWSE("go") },
-#   { 0,                              GDK_b,      spawn,      BROWSE("bookmark") },
-#   { GDK_SHIFT_MASK,                 GDK_i,      spawn,      BROWSE("info") },
-#   { GDK_CONTROL_MASK|GDK_SHIFT_MASK,GDK_g,      spawn,      BROWSE("go_raw") }
+#     { GDK_CONTROL_MASK,               GDK_s,      spawn,      BROWSE("find") },
+#     { 0,                              GDK_g,      spawn,      BROWSE("go") },
+#     { 0,                              GDK_b,      spawn,      BROWSE("bookmark") },
+#     { GDK_SHIFT_MASK,                 GDK_i,      spawn,      BROWSE("info") },
+#     { GDK_CONTROL_MASK|GDK_SHIFT_MASK,GDK_g,      spawn,      BROWSE("go_raw") }
 #
 # The script uses sprop and a Plan 9 userland.  You may need to
 # uncomment the line below to get it to run (assuming your system sets
 # `$PLAN9` properly, just edit the path manually otherwise).
 #
-#   path=($PLAN9/bin $path)
+#     path=($PLAN9/bin $path)
 #
-# Based on an sh shell script by Peter John Hartman, pancake, nibble and Peter John Hartman.
+# Based on an `sh` shell script by Peter John Hartman, pancake, nibble and Peter John Hartman.
 
 font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
 normbgcolor='#181818'
