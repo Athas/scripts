@@ -1,0 +1,134 @@
+#!/usr/bin/env rc
+
+# Manipulate `surf` via dmenu-based interface.
+#
+# This script does:
+#  * stores history of: (1) successful URI entries; (2) certain smart prefix entries, e.g., "g foobar"; (3) find entries
+#  * direct bookmarks (same list as history)
+#  * information debug, show all X properties on the `surf` window.
+#  * smart prefixes e.g. `g` for Google search, `t` for TinyURL, etc.
+#  * delete (with smart prefix `x`)
+#  * searching in page text (slightly broken)
+#
+# Usage: `surfbrowse` _xid_ _action
+#
+# _action_ must be one of `find`, `bookmark`, `go`, `go_raw`, `info`.
+#
+# To install, add the following to your `config.h`:
+#
+#   #define BROWSE(p) { .v = (char *[]){ "/bin/sh", "-c", "surfbrowse $1 $0", p, winid, NULL } }
+#
+# Then add some bindings to your keylist, for example the following:
+#
+#   { GDK_CONTROL_MASK,               GDK_s,      spawn,      BROWSE("find") },
+#   { 0,                              GDK_g,      spawn,      BROWSE("go") },
+#   { 0,                              GDK_b,      spawn,      BROWSE("bookmark") },
+#   { GDK_SHIFT_MASK,                 GDK_i,      spawn,      BROWSE("info") },
+#   { GDK_CONTROL_MASK|GDK_SHIFT_MASK,GDK_g,      spawn,      BROWSE("go_raw") }
+#
+# The script uses sprop and a Plan 9 userland.  You may need to
+# uncomment the line below to get it to run (assuming your system sets
+# `$PLAN9` properly, just edit the path manually otherwise).
+#
+#   path=($PLAN9/bin $path)
+#
+# Based on an sh shell script by Peter John Hartman, pancake, nibble and Peter John Hartman.
+
+font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
+normbgcolor='#181818'
+normfgcolor='#e9e9e9'
+selbgcolor='#dd6003'
+selfgcolor='#e9e9e9'
+history=$home/.surf/history.txt
+ffile=$home/.surf/find.txt
+
+xid=$1
+p=$2
+dmenu=(dmenu -e $xid -fn $font -nb $normbgcolor -nf $normfgcolor \
+       -sb $selbgcolor -sf $selfgcolor)
+
+fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' }
+fn qed { {echo $1; echo 'w '^$2} | ed $2 >[1] /dev/null >[2=1] }
+
+fn s_get_prop { sprop $xid $1 | cut -d '''' -f 2 }
+
+fn s_set_prop { test -n $2 && sprop $xid $1 $2 }
+
+fn s_write_f { test -n $2 && {qed 'g/'^`{escape $2}^'/d' $1; echo $2 >> $1} }
+
+fn s_set_write_proper_uri {
+    # input is whatever the use inputed, so don't store that!
+    # first, clear the name field because surf doesn't sometimes
+    s_set_prop WM_ICON_NAME ''
+    # set the uri
+    s_set_prop _SURF_URI $1
+    # get the new name
+    name=`{s_get_prop WM_ICON_NAME}
+    # loop until the [10%] stuff is finished and we have a load (is this necessary?)
+    while (echo $name | /bin/grep '[*%\]' >/dev/null >[2=1]) {
+        name=`{s_get_prop WM_ICON_NAME}
+    }
+    # bail on error and don't store
+    if (! ~ $name 'Error') {
+        uri=`{s_get_prop _SURF_URI}
+        # store to the history file the OFFICIAL url (with http://whatever)
+        s_write_f $history $1
+    }
+}
+
+switch ($p) {
+    case info
+        xprop -id $xid | sed 's/	/    /g' | $dmenu -b -l 20
+    case find
+        tail -10000r $ffile >[2] /dev/null | $dmenu -r -b -p find: |\
+        while (read -r find) do
+            s_set_prop _SURF_FIND $find
+        done
+        s_write_f $ffile $find
+    case bookmark
+        uri=`{s_get_prop _SURF_URI}
+        s_write_f $history $"uri
+    case go_raw
+        uri=`{echo `{s_get_prop _SURF_URI} | $dmenu -b -p 'uri:'}
+        s_set_prop _SURF_URI $"uri
+    case go
+        sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
+        test -z $"sel && exit
+        opt=`{echo $sel | cut -d ' ' -f 1}
+        arg=`{echo $sel | cut -d ' ' -f 2-}
+        save=0
+        switch ($opt) {
+            case d # del.icio.us
+                uri='http://del.icio.us/save?url='^`{s_get_prop _SURF_URI}
+            case g # google for it
+                uri='http://www.google.com/search?q='^$"arg
+                save=1
+            case i # google for it as image
+                uri='http://www.google.com/images?q='^$"arg
+                save=1
+            case t # tinyurl
+                uri='http://tinyurl.com/create.php?url='^`{s_get_prop _SURF_URI}
+            case w # wikipedia
+                uri='http://wikipedia.org/wiki/'^$"arg
+                save=1
+            case h
+                uri='http://haskell.org/hoogle/?q='^$"arg
+                save=1
+            case y # youtube
+                uri='http://www.youtube.com/results?search_query='^$"arg^'&aq=f'
+                save=1
+            case x # delete
+                qed 'g/'^`{escape $"arg}^'/d' $history
+            case *
+                 uri=$"sel
+                 save=2
+        }
+        # only set the uri; don't write to file
+        if (~ $save 0) s_set_prop _SURF_URI $uri
+        # set the url and write exactly what the user inputed to the file
+        if (~ $save 1) {s_set_prop _SURF_URI $uri; s_write_f $history $"sel}
+        # try to set the uri only if it is a success
+        if (~ $save 2) s_set_write_proper_uri $uri
+    case *
+         echo Unknown action $p
+}
