@@ -4,13 +4,12 @@
 #
 # This script does:
 #
-#  * stores history of: (1) successful URI entries; (2) certain smart prefix entries, e.g., "g foobar"; (3) find entries
-#  * direct bookmarks (same list as history)
-#  * information debug, show all X properties on the `surf` window.
-#  * smart prefixes e.g. `g` for Google search, `t` for TinyURL, etc.
-#  * delete (with smart prefix `x`)
-#  * searching in page text (slightly broken)
-#
+#   * stores history of: (1) successful URI entries; (2) certain smart prefix entries, e.g., "g foobar"; (3) find entries
+#   * direct bookmarks (same list as history)
+#   * information debug, show all X properties on the `surf` window.
+#   * smart prefixes e.g. `g` for Google search, `t` for TinyURL, etc.
+#   * delete (with smart prefix `x`)
+#   * searching in page text (slightly broken)
 # Usage: `surfbrowse` _xid_ _action_
 #
 # _action_ must be one of `find`, `bookmark`, `go`, `go_raw`, `info`.
