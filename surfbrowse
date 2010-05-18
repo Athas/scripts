@@ -55,7 +55,7 @@ fn s_get_prop { sprop $xid $1 | cut -d '''' -f 2 }
 
 fn s_set_prop { test -n $2 && sprop $xid $1 $2 }
 
-fn s_write_f { test -n $2 && {qed 'g/'^`{escape $2}^'/d' $1; echo $2 >> $1} }
+fn s_write_f { test -n $2 && {qed 'g/^'^`{escape $2}^'$/d' $1; echo $2 >> $1} }
 
 fn s_set_write_proper_uri {
     # input is whatever the use inputed, so don't store that!
