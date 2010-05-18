@@ -3,6 +3,7 @@
 # Manipulate `surf` via `dmenu`-based interface.
 #
 # This script does:
+#
 #  * stores history of: (1) successful URI entries; (2) certain smart prefix entries, e.g., "g foobar"; (3) find entries
 #  * direct bookmarks (same list as history)
 #  * information debug, show all X properties on the `surf` window.
