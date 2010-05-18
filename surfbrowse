@@ -10,6 +10,7 @@
 #   * smart prefixes e.g. `g` for Google search, `t` for TinyURL, etc.
 #   * delete (with smart prefix `x`)
 #   * searching in page text (slightly broken)
+#
 # Usage: `surfbrowse` _xid_ _action_
 #
 # _action_ must be one of `find`, `bookmark`, `go`, `go_raw`, `info`.
