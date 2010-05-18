@@ -43,6 +43,10 @@ fn escape {
    # Make URL safe as target for ed.
    echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g'
 }
+fn qed {
+   # Operate ed on $2 with command $1.
+   {echo $1; echo 'w '^$2} | ed $2 >[1] /dev/null >[2=1]
+}
 
 fn orphans {
    awk '{ if (system("test -d /proc/"$1)) { print $2 }}' $sessionfile
@@ -57,11 +61,9 @@ if (touch $sessionfile) {
        case add-locked
           echo $2 $3 >> $sessionfile
        case remove-locked
-          {echo 'g/'^$2^' '^`{escape $3}^'/d'; echo 'w '^$sessionfile}\
-          | ed $sessionfile >[2] /dev/null
+          qed 'g/'^$2^' '^`{escape $3}^'/d' $sessionfile
        case purge-locked
-          {echo 'g/'`{escape $2}^'/d'; echo 'w '^$sessionfile}\
-          | ed $sessionfile >[2] /dev/null
+          qed 'g/'`{escape $2}^'/d' $sessionfile
        case restore-locked
           echo `{orphans}
           for (url in `{orphans}) { surf $url & }
@@ -77,7 +79,8 @@ if (touch $sessionfile) {
        case *
           cmd=$1-locked
           shift
-          flock -o $sessionfile -c $0^' '^$cmd^' '^$"*
+          args=`{for (arg in $*) echo ''''^$arg^''''} # quote for subshell...
+          flock -o $sessionfile -c $0^' '^$cmd^' '^$"args
    }
 }
 if not {
