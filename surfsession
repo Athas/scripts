@@ -45,7 +45,7 @@ fn escape {
 }
 fn rmline {
     # Remove line matching $1 from $2 (in-place).
-    {grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"}'; echo 'w '^$2} | ed $2 > /dev/null
+    grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"} END{print "w"}' | ed $2 > /dev/null
 }
 
 fn orphans {

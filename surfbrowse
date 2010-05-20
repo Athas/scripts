@@ -48,7 +48,7 @@ dmenu=(dmenu -e $xid -fn $font -nb $normbgcolor -nf $normfgcolor \
 
 fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' }
 fn rmline {
-    {grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"}'; echo 'w '^$2} | ed $2 > /dev/null
+    grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"} END{print "w"}' | ed $2 > /dev/null
 }
 
 fn s_get_prop { sprop $xid $1 | cut -d '''' -f 2 }
