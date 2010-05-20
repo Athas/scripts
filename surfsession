@@ -43,9 +43,9 @@ fn escape {
    # Make URL safe as target for ed.
    echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g'
 }
-fn qed {
-   # Operate ed on $2 with command $1.
-   {echo $1; echo 'w '^$2} | ed $2 >[1] /dev/null >[2=1]
+fn rmline {
+    # Remove line matching $1 from $2 (in-place).
+    {grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"}'; echo 'w '^$2} | ed $2 > /dev/null
 }
 
 fn orphans {
@@ -61,9 +61,9 @@ if (touch $sessionfile) {
        case add-locked
           echo $2 $3 >> $sessionfile
        case remove-locked
-          qed 'g/'^$2^' '^`{escape $3}^'/d' $sessionfile
+          rmline '^'^$2^' '^`{escape $3}^'$' $sessionfile
        case purge-locked
-          qed 'g/'`{escape $2}^'/d' $sessionfile
+          rmline '^[0-9]+ '^`{escape $2}^'$' $sessionfile
        case restore-locked
           echo `{orphans}
           for (url in `{orphans}) { surf $url & }

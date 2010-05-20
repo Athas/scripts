@@ -47,15 +47,20 @@ dmenu=(dmenu -e $xid -fn $font -nb $normbgcolor -nf $normfgcolor \
        -sb $selbgcolor -sf $selfgcolor)
 
 fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' }
-fn qed { {echo $1; echo 'w '^$2} | ed $2 >[1] /dev/null >[2=1] }
+fn rmline {
+    {grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"}'; echo 'w '^$2} | ed $2 > /dev/null
+}
 
 fn s_get_prop { sprop $xid $1 | cut -d '''' -f 2 }
 
 fn s_set_prop { test -n $2 && sprop $xid $1 $2 }
 
 fn s_write_f {
-    tgt=`{escape $2}
-    test -n $2 && {qed 'g/^'^$"tgt^'$/d' $1; echo $2 >> $1}
+    if (test -n $2) {
+        tgt=`{escape $2}
+        rmline $"tgt $1
+        echo $2 >> $1
+    }
 }
 
 fn s_set_write_proper_uri {
@@ -114,7 +119,8 @@ switch ($p) {
                 uri='http://www.youtube.com/results?search_query='^$"arg^'&aq=f'
                 save=1
             case x # delete
-                qed 'g/'^`{escape $"arg}^'/d' $history
+                tgt=`{escape $"arg}
+                rmline $"tgt $history
             case *
                  uri=$"sel
                  save=2
