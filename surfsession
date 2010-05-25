@@ -52,7 +52,12 @@ fn orphans {
    awk '{ if (system("test -d /proc/"$1)) { print $2 }}' $sessionfile
 }
 
-sessionfile=$home/.surf/sessions
+if (~ $#XDG_CACHE_HOME 0) {
+    history=$home/.cache/surf/sessions
+}
+if not {
+    history=$XDG_CACHE_HOME/surf/sessions
+}
 
 if (touch $sessionfile) {
    # We translate command foo to foo-locked surrounded by locking of
