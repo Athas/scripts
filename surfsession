@@ -53,10 +53,10 @@ fn orphans {
 }
 
 if (~ $#XDG_CACHE_HOME 0) {
-    history=$home/.cache/surf/sessions
+    sessionfile=$home/.cache/surf/sessions
 }
 if not {
-    history=$XDG_CACHE_HOME/surf/sessions
+    sessionfile=$XDG_CACHE_HOME/surf/sessions
 }
 
 if (touch $sessionfile) {
