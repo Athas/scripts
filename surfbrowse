@@ -97,6 +97,10 @@ switch ($p) {
     case go_raw
         uri=`{echo `{s_get_prop _SURF_URI} | $dmenu -b -p 'uri:'}
         s_set_prop _SURF_GO $"uri
+    case del
+        sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
+        tgt=`{escape $"sel}
+        rmline $"tgt $history
     case go
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         test -z $"sel && exit
@@ -123,9 +127,6 @@ switch ($p) {
             case y # youtube
                 uri='http://www.youtube.com/results?search_query='^$"arg^'&aq=f'
                 save=1
-            case x # delete
-                tgt=`{escape $"arg}
-                rmline $"tgt $history
             case *
                  uri=$"sel
                  save=2
