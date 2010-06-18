@@ -32,7 +32,13 @@
 #
 #     path=($PLAN9/bin $path)
 #
+# You also need [insitu][].
+#
 # Based on an `sh` shell script by Peter John Hartman, pancake, nibble and Peter John Hartman.
+#
+# [insitu]: http://sigkill.dk/programs/insitu
+
+SHELL=`{which rc}
 
 font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
 normbgcolor='#181818'
@@ -51,7 +57,7 @@ p=$2
 dmenu=(dmenu -e $xid -fn $font -nb $normbgcolor -nf $normfgcolor \
        -sb $selbgcolor -sf $selfgcolor)
 
-fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' }
+fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' | sed 's/''/''''/g' }
 fn rmline {
     grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"} END{print "w"}' | ed $2 > /dev/null
 }
@@ -63,7 +69,7 @@ fn s_set_prop { test -n $2 && sprop $xid $1 $2 }
 fn s_write_f {
     if (test -n $2) {
         tgt=`{escape $2}
-        rmline $"tgt $1
+        insitu $1 'grep -v '''^$"tgt^''''
         echo $2 >> $1
     }
 }
@@ -100,7 +106,7 @@ switch ($p) {
     case del
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         tgt=`{escape $"sel}
-        rmline $"tgt $history
+        insitu $history 'grep -v '''^$"tgt^''''
     case go
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         test -z $"sel && exit
