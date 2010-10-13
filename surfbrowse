@@ -54,10 +54,10 @@ if not {
 
 xid=$1
 p=$2
-dmenu=(dmenu -e $xid -fn $font -nb $normbgcolor -nf $normfgcolor \
+dmenu=(dmenu -b -fn $font -nb $normbgcolor -nf $normfgcolor \
        -sb $selbgcolor -sf $selfgcolor)
 
-fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' | sed 's/''/''''/g' }
+fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' | sed 's/''/''''/g' | sed 's/#/\\#/g' }
 fn rmline {
     grep -n $1 $2 | awk -F ':' '{print $1-NR+1"d"} END{print "w"}' | ed $2 > /dev/null
 }
@@ -69,7 +69,7 @@ fn s_set_prop { test -n $2 && sprop $xid $1 $2 }
 fn s_write_f {
     if (test -n $2) {
         tgt=`{escape $2}
-        insitu $1 'grep -v '''^$"tgt^''''
+        insitu $1 'grep -v ''^'^$"tgt^'$'''
         echo $2 >> $1
     }
 }
@@ -106,7 +106,7 @@ switch ($p) {
     case del
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         tgt=`{escape $"sel}
-        insitu $history 'grep -v '''^$"tgt^''''
+        insitu $history 'grep -v ''^'^$"tgt^'$'''
     case go
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         test -z $"sel && exit
@@ -134,8 +134,8 @@ switch ($p) {
                 uri='http://www.youtube.com/results?search_query='^$"arg^'&aq=f'
                 save=1
             case *
-                 uri=$"sel
-                 save=2
+                uri=$"sel
+                save=2
         }
         # only set the uri; don't write to file
         if (~ $save 0) s_set_prop _SURF_GO $uri
