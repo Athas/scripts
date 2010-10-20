@@ -46,11 +46,13 @@ normfgcolor='#e9e9e9'
 selbgcolor='#dd6003'
 selfgcolor='#e9e9e9'
 if (~ $#XDG_CACHE_HOME 0) {
-    history=$home/.cache/surf/history.txt
+    surfcache=$home/.cache/surf
 }
 if not {
-    history=$XDG_CACHE_HOME/surf/history.txt
+    surfcache=$XDG_CACHE_HOME/surf
 }
+history=$surfcache/history
+visits=$surfcache/visits
 
 xid=$1
 p=$2
@@ -107,6 +109,9 @@ switch ($p) {
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         tgt=`{escape $"sel}
         insitu $history 'grep -v ''^'^$"tgt^'$'''
+    case history
+        sel=`{tail -10000r $visits >[2] /dev/null | $dmenu -b -l 5 -p 'uri from history:'}
+        s_set_prop _SURF_GO $"sel
     case go
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
         test -z $"sel && exit

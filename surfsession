@@ -50,29 +50,37 @@ dmenu=(dmenu -fn $font -nb $normbgcolor -nf $normfgcolor \
 fn escape { echo $1 | sed 's,[$^|?+*.()\[\]/],\\&,g' | sed 's/''/''''/g' }
 
 fn orphans {
-   awk '{ if (system("test -d /proc/"$1)) { print(substr($0,index($0,$2))) }}' $sessionfile
+   awk '{ if (system("test -d /proc/"$1)) { print(substr($0,index($0,$2))) }}' $sessions
 }
+
+visitssize=500
 
 if (~ $#XDG_CACHE_HOME 0) {
-    sessionfile=$home/.cache/surf/sessions
+    surfcache=$home/.cache/surf
 }
 if not {
-    sessionfile=$XDG_CACHE_HOME/surf/sessions
+    surfcache=$XDG_CACHE_HOME/surf
 }
 
-if (touch $sessionfile) {
+sessions=$surfcache/sessions
+visits=$surfcache/visits
+
+if (touch $sessions) {
    # We translate command foo to foo-locked surrounded by locking of
-   # $sessionfile.
+   # $surfcache.
    switch ($1) {
        case add-locked
-          echo $2 $3 >> $sessionfile
+          tgt=`{escape $3}
+          insitu $visits 'grep -v '$tgt'|tail -n '$visitssize
+          echo $3 >> $visits
+          echo $2 $3 >> $sessions
        case remove-locked
-          insitu $sessionfile 'grep -v ''^'^$2^' '^`{escape $3}^'$'''
+          insitu $sessions 'grep -v ''^'^$2^' '^`{escape $3}^'$'''
        case purge-locked
-          insitu $sessionfile 'grep -v ''^[0-9]+ '^`{escape $2}^'$'''
+          insitu $sessions 'grep -v ''^[0-9]+ '^`{escape $2}^'$'''
        case restore-locked
           for (url in `{orphans}) { surf $url & }
-          rm $sessionfile
+          rm $sessions
        case resume-locked
            ifs='
 ' res=`{orphans|$dmenu}
@@ -86,10 +94,10 @@ if (touch $sessionfile) {
           cmd=$1-locked
           shift
           args=`{for (arg in $*) echo ''''^$arg^''''} # quote for subshell...
-          flock -o $sessionfile -c $0^' '^$cmd^' '^$"args
+          flock -o $surfcache -c $0^' '^$cmd^' '^$"args
    }
 }
 if not {
-    echo 'Cannot write to '$sessionfile >[1=2]
+    echo 'Cannot write to '$surfcache >[1=2]
     exit 1
 }
