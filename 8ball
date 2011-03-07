@@ -1,10 +1,9 @@
 #!/usr/bin/env rc
-#
+
 # Query the magic 8-ball.  Prints one of the standard twenty answers
 # on standard output.
 #
 # Usage: `8ball`.  No arguments are accepted.
-
 
 answers=('As I see it, yes' \
 'It is certain' \

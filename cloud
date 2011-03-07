@@ -1,5 +1,5 @@
 #!/bin/sh
-#
+
 # Leverage the power of CLOUD COMPUTING using standard Unix tools!
 # Given a list of servers to which you have password-less login
 # through ssh, YOU TOO can command the awesome power of modern
