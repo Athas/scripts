@@ -15,15 +15,15 @@
 #        | cloud sed -r 's/^\([aeiouyAEIOUY]\).*/\\1/' \
 #        | cloud sort | cloud uniq -c
 #
-# Note that only the sort and uniq commands have to wait for complete
-# input - the rest run in parallel on a line-by-line basis.  That is
-# the power that `cloud` can bring to your enterprise!
+# Note that only the `sort` and `uniq` commands have to wait for
+# complete input - the rest run in parallel on a line-by-line basis.
+# That is the power that `cloud` can bring to your enterprise!
 #
 # Note that you have to edit the `servers` command in the source code
 # to represent the machines in your own cloud (you probably do not
 # have login rights to mine).
 #
-# Usage: `cloud <command>'.
+# Usage: `cloud <command>`.
 
 servers() {
     echo brok.diku.dk
