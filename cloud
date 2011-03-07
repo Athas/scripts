@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Leverage the power of CLOUD COMPUTING using standard Unix tools!
+# Given a list of servers to which you have password-less login
+# through ssh, YOU TOO can command the awesome power of modern
+# round-robin cloud computing.  Incorporating ideas from both CSP and
+# cutting-edge pipelined architectures, the use of `cloud` in
+# conjunction with the Unix shell permits ENORMOUS SCALABILITY when
+# processing data sets (especially if you do not pay for the servers
+# running the commands for you).  For example, leveraging the
+# MapReduce principle to count the files starting with vowels in a
+# directory:
+#
+#     ls | cloud tr '[A-Z]' '[a-z'] | cloud grep '^[aeiouy]' \
+#        | cloud sed -r 's/^\([aeiouyAEIOUY]\).*/\\1/' \
+#        | cloud sort | cloud uniq -c
+#
+# Note that only the sort and uniq commands have to wait for complete
+# input - the rest run in parallel on a line-by-line basis.  That is
+# the power that `cloud` can bring to your enterprise!
+#
+# Note that you have to edit the `servers` command in the source code
+# to represent the machines in your own cloud (you probably do not
+# have login rights to mine).
+#
+# Usage: `cloud <command>'.
+
+servers() {
+    echo brok.diku.dk
+    echo ask.diku.dk
+    echo tyr.diku.dk
+    echo sigkill.dk
+    echo spiltirsdag.dk
+}
+
+randomServer() {
+    servers | sort -R | head -n 1
+}
+
+if [ $# -eq 0 ]; then
+    echo "I must have a command to execute on the CLOUD!"
+    exit 1
+else
+    command="$@"
+    ssh $(randomServer) "$command"
+fi
