@@ -14,8 +14,8 @@
 # The first argument to `surfsession` indicates the action to be
 # taken, with the following actions being supported:
 #
-# * `add` _pid_ _url_: store _url_ as being browsed by the process
-#   `_pid_`.
+# * `add` _pid_ _url_ _title_: store _url_, with the given _title_,
+# as being browsed by the process `_pid_`.
 #
 # * `remove` _pid_ _url_: remove any _url_ being browsed by _pid_.
 #
@@ -36,6 +36,8 @@
 #
 # [insitu]: http://sigkill.dk/programs/insitu
 
+flag +e # Die on error
+
 SHELL=`{which rc}
 
 # dmenu setup shamelessly cribbed from surf.sh.
@@ -53,7 +55,11 @@ fn orphans {
    awk '{ if (system("test -d /proc/"$1)) { print(substr($0,index($0,$2))) }}' $sessions
 }
 
-visitssize=500
+fn rmtitle {
+   awk '{print substr($0,0,index($0," - "))}'
+}
+
+visitssize=500000
 
 if (~ $#XDG_CACHE_HOME 0) {
     surfcache=$home/.cache/surf
@@ -64,7 +70,6 @@ if not {
 
 sessions=$surfcache/sessions
 visits=$surfcache/visits
-
 if (touch $sessions) {
    # We translate command foo to foo-locked surrounded by locking of
    # $surfcache.
@@ -72,18 +77,20 @@ if (touch $sessions) {
        case add-locked
           tgt=`{escape $3}
           insitu $visits 'grep -v '''$tgt'''|tail -n '$visitssize
-          echo $3 >> $visits
-          echo $2 $3 >> $sessions
+          echo $3 ' - ' $4  >> $visits
+          echo $2 $3 ' - ' $4 >> $sessions
        case remove-locked
           insitu $sessions 'grep -v ''^'^$2^' '^`{escape $3}^'$'''
        case purge-locked
           insitu $sessions 'grep -v ''^[0-9]+ '^`{escape $2}^'$'''
        case restore-locked
-          for (url in `{orphans}) { surf $url & }
+          {
+                orphans | rmtitle | { url=`{read}; surf $"url & }
+          }
           rm $sessions
        case resume-locked
            ifs='
-' res=`{orphans|$dmenu}
+' res=`{orphans|$dmenu|rmtitle}
            if (! ~ $status '') exit 1
            $0 purge-locked $res && surf $res &
        # Don't deadlock on unknown commands...
@@ -93,7 +100,10 @@ if (touch $sessions) {
        case *
           cmd=$1-locked
           shift
-          args=`{for (arg in $*) echo ''''^$arg^''''} # quote for subshell...
+          args=`{for (arg in $*) {
+                     varg=`{echo $arg|sed 's/''/''''/g'}
+                     echo ''''^$"varg^''''
+                }} # quote for subshell...
           flock -o $surfcache -c $0^' '^$cmd^' '^$"args
    }
 }

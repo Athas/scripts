@@ -110,7 +110,7 @@ switch ($p) {
         tgt=`{escape $"sel}
         insitu $history 'grep -v ''^'^$"tgt^'$'''
     case history
-        sel=`{tail -10000r $visits >[2] /dev/null | $dmenu -b -l 5 -p 'uri from history:'}
+        sel=`{tail -10000r $visits >[2] /dev/null | $dmenu -b -l 5 -p 'uri from history:' | awk -F' - ' '{print $1}' }
         s_set_prop _SURF_GO $"sel
     case go
         sel=`{tail -10000r $history >[2] /dev/null | $dmenu -b -l 5 -p 'uri [dgitwhy*]:'}
