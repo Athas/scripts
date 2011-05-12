@@ -24,6 +24,6 @@ while (test -d $"tgt) {
     res=`{list $tgt|dmenu -l 20 -i}
     # Die if dmenu (or listing) failed.
     if (! ~ $status '') exit 1
-    tgt=`{realpath $"tgt/$"res}
+    tgt=`{realpath $"tgt/$"res >[2] /dev/null || echo $"tgt/$"res}
 }
 echo $"tgt
