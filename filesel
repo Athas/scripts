@@ -1,8 +1,8 @@
 #!/usr/bin/env rc
 
 # Select a file from the file system, using [`dmenu`][1] to query the user
-# at each step.  Has minimal error checking and cannot be used to
-# select directories, only files.
+# at each step until a file is selected (or `dmenu` returns with an error).
+# Has minimal error checking.
 #
 # Usage: `filesel [DIR]`, with the default being the current working
 # directory.
@@ -17,13 +17,13 @@ if not {
 }
 
 # We can't use ls -a because we don't want '.'.
-fn list { echo ..; ls $1 }
+fn list { ls -p -F $1 | sed 's/\*$//'; echo ../ }
 
 # Loop until a file has been chosen...
-while (test -d $tgt) {
-    res=`{list $tgt|dmenu}
+while (test -d $"tgt) {
+    res=`{list $tgt|dmenu -l 20 -i}
     # Die if dmenu (or listing) failed.
     if (! ~ $status '') exit 1
-    tgt=`{realpath $tgt/$res}
+    tgt=`{realpath $"tgt/$"res}
 }
-echo $tgt
+echo $"tgt
