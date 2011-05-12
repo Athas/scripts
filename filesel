@@ -21,7 +21,7 @@ fn list { ls -p -F $1 | sed 's/\*$//'; echo ../ }
 
 # Loop until a file has been chosen...
 while (test -d $"tgt) {
-    res=`{list $tgt|dmenu -l 20 -i}
+    res=`{list $tgt|dmenu -l 20 -i -p $"tgt/}
     # Die if dmenu (or listing) failed.
     if (! ~ $status '') exit 1
     tgt=`{realpath $"tgt/$"res >[2] /dev/null || echo $"tgt/$"res}
