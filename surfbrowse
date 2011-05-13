@@ -133,7 +133,8 @@ switch ($p) {
                 uri='http://wikipedia.org/wiki/'^$"arg
                 save=1
             case h
-                uri='http://haskell.org/hoogle/?q='^$"arg
+                uri='http://holumbus.fh-wedel.de/hayoo/hayoo.html?query='$"arg'&start'
+                #uri='http://haskell.org/hoogle/?q='^$"arg
                 save=1
             case y # youtube
                 uri='http://www.youtube.com/results?search_query='^$"arg^'&aq=f'
