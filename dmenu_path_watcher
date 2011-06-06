@@ -1,9 +1,10 @@
 #!/bin/sh
 
-# Rerun 'dmenu_path' (reconstructing the cache in '~/.dmenu_cache')
-# whenever a file is removed or added to a directory in 'PATH'.  Start
-# this in the background and enjoy.  Requires inotify-tools for
-# 'inotifywait'.
+# Rerun `dmenu_path` (reconstructing the cache in `~/.dmenu_cache`)
+# whenever a file is removed or added to a directory in `PATH`.  Start
+# this in the background (for example from your `~/.profile` or
+# `~/.xsession`) and enjoy.  Requires inotify-tools for the
+# `inotifywait` program.
 
 (IFS=":"; inotifywait -q -e move -e create -e delete $PATH -m) \
 | while read line; do dmenu_path > /dev/null; done
