@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/sh
 
 # Simplistic session management for `surf`.
 #
@@ -6,7 +6,7 @@
 # history is stored.  The script is supposed to be called
 # automatically by `surf` to update URL data, and by user commands to
 # resume them.  File locking via `flock` is used to ensure atomicity
-# of modifications to `.surf/sessions`.
+# of modifications to the sessions file.
 #
 # An URL is considered an "orphan" if its listed PID no longer
 # refers to a live process.
@@ -23,91 +23,66 @@
 #
 # * `restore`: start `surf` for all orphan URLs.
 #
-# * `resume`: use `dmenu` to select an orphan URL, which will be
+# * `resume`: use `sinmenu` to select an orphan URL, which will be
 #   opened in `surf`.
-#
-# The script uses sprop and a Plan 9 userland.  You may need to
-# uncomment the line below to get it to run (assuming your system sets
-# `$PLAN9` properly, just edit the path manually otherwise).
-#
-#     path=($PLAN9/bin $path)
-#
-# You also need [insitu][].
-#
-# [insitu]: http://sigkill.dk/programs/insitu
 
-flag +e # Die on error
+set -e # Die on error
 
-SHELL=`{which rc}
-
-# dmenu setup shamelessly cribbed from surf.sh.
 font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
 normbgcolor='#181818'
 normfgcolor='#e9e9e9'
 selbgcolor='#dd6003'
 selfgcolor='#e9e9e9'
-dmenu=(dmenu -fn $font -nb $normbgcolor -nf $normfgcolor \
-       -sb $selbgcolor -sf $selfgcolor -l 10 -b)
+menu="sinmenu --nb $normbgcolor --nf $normfgcolor \
+      --sb $selbgcolor --sf $selfgcolor -l 10"
 
-fn escape { echo $1 | sed 's,[$^|?+*.()\[\]],\\&,g' | sed 's/''/''''/g' }
-
-fn orphans {
-   awk '{ if (system("test -d /proc/"$1)) { print(substr($0,index($0,$2))) }}' $sessions
+orphans () {
+    awk '{ if (system("test -d /proc/"$1)) { print(substr($0,index($0,$2))) }}' $sessions
 }
 
-fn rmtitle {
-   awk '{print substr($0,0,index($0," - "))}'
+rmtitle () {
+    awk '{print substr($0,1,index($0," - "))}'
 }
 
 visitssize=500000
 
-if (~ $#XDG_CACHE_HOME 0) {
-    surfcache=$home/.cache/surf
-}
-if not {
-    surfcache=$XDG_CACHE_HOME/surf
-}
-
+surfcache=${XDG_CACHE_HOME:-~/.cache}/surf
 sessions=$surfcache/sessions
 visits=$surfcache/visits
-if (touch $sessions) {
+
+if touch $sessions; then
    # We translate command foo to foo-locked surrounded by locking of
    # $surfcache.
-   switch ($1) {
-       case add-locked
-          tgt=`{escape $3}
-          insitu $visits 'grep -v '''$tgt'''|tail -n '$visitssize
-          echo $3 ' - ' $4  >> $visits
-          echo $2 $3 ' - ' $4 >> $sessions
-       case remove-locked
-          insitu $sessions 'grep -v ''^'^$2^' '^`{escape $3}^'$'''
-       case purge-locked
-          insitu $sessions 'grep -v ''^[0-9]+ '^`{escape $2}^'$'''
-       case restore-locked
-          {
-                orphans | rmtitle | { url=`{read}; surf $"url & }
-          }
-          rm $sessions
-       case resume-locked
-           ifs='
-' res=`{orphans|$dmenu|rmtitle}
-           if (! ~ $status '') exit 1
-           $0 purge-locked $res && surf $res &
-       # Don't deadlock on unknown commands...
-       case *-locked
-          exit 1
-       # Wrap a command in file locking and rerun the script.
-       case *
-          cmd=$1-locked
-          shift
-          args=`{for (arg in $*) {
-                     varg=`{echo $arg|sed 's/''/''''/g'}
-                     echo ''''^$"varg^''''
-                }} # quote for subshell...
-          flock -o $surfcache -c $0^' '^$cmd^' '^$"args
-   }
-}
-if not {
-    echo 'Cannot write to '$surfcache >[1=2]
+    case "$1" in
+        add-locked)
+            (rm "$visits" && tail -n $visitssize | awk 'index($0, URL" - ")!=1' "URL=$3" > "$visits") < "$visits"
+            $0 remove-locked "$2"
+            echo "$3 - $4" >> "$visits"
+            echo "$2 $3 - $4" >> "$sessions"
+            ;;
+        remove-locked)
+            (rm "$sessions" && awk '$1!=PID' "PID=$2" > "$sessions") < "$sessions"
+            ;;
+        purge-locked)
+            (rm "$sessions" && awk '$2!=URL' "URL=$2" > "$sessions") < "$sessions"
+            ;;
+        restore-locked)
+            orphans | rmtitle | ( url=$(read); surf "$url" & )
+            rm $sessions
+            ;;
+        resume-locked)
+            res=$(orphans|$menu|rmtitle)
+            [ -n "$res" ] && $0 purge-locked $res && surf $res &
+            ;;
+        *-locked) # Don't deadlock on unknown commands...
+            exit 1
+            ;;
+        *) # Wrap a command in file locking and rerun the script.
+            cmd=$1-locked
+            shift
+            flock -o $surfcache $0 "$cmd" "$@"
+    esac
+else
+    echo 'Cannot write to '$surfcache 1>&2
     exit 1
-}
+fi
