@@ -48,7 +48,7 @@ menu="browserfield --nb $normbgcolor --nf $normfgcolor \
 
 rawmenu="sinmenu --nb $normbgcolor --nf $normfgcolor \
        --sb $selbgcolor --sf $selfgcolor -l 10 -b"
-echo $xid
+
 s_get_prop() { # xprop
     xprop -id $xid $1 | cut -d '"' -f 2
 }
@@ -76,8 +76,8 @@ case "$p" in
         s_write_f $history "$uri"
         ;;
     del)
-        sel=$(tac $history 2>/dev/null | $menu -p 'uri [dgitwhy*]:')
-        sed -i "\|$sel|d" $history
+        sel=$(tac $history 2>/dev/null | $rawmenu -p 'uri [dgitwhy*]:')
+        (rm "$history" && awk '$0!=SEL' "SEL=$sel" > "$history") < "$history"
         ;;
     history)
         sel=$(tac $visits 2>/dev/null | $rawmenu -p 'uri from history:' | awk -F' - ' '{print $1}')
