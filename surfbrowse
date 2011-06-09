@@ -58,7 +58,7 @@ s_set_prop() { # xprop value
 }
 
 s_write_f() { # file value
-    [ -n "$2" ] && (sed -i "\|$2|d" $1; echo "$2" >> $1)
+    [ -n "$2" ] && ((rm "$history" && awk '$0!=SEL' "SEL=$sel" > "$history") < "$history"; echo "$2" >> $1)
 }
 
 s_set_write_proper_uri() { # uri
