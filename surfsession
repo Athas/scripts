@@ -67,7 +67,7 @@ if touch $sessions; then
             (rm "$sessions" && awk '$2!=URL' "URL=$2" > "$sessions") < "$sessions"
             ;;
         restore-locked)
-            orphans | rmtitle | ( url=$(read); surf "$url" & )
+            orphans | rmtitle | ( while read url; do surf "$url" & done )
             rm $sessions
             ;;
         resume-locked)
