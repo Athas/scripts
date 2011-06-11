@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Manipulate `surf` via `sinmenu`-based interface.
+# Manipulate `surf` via `sinmenu`-based interface.  You also need the
+# `browserfield` script.
 #
 # This script does:
 #
@@ -30,12 +31,6 @@
 
 set -e # Die on error
 
-font='-*-terminus-medium-*-*-*-*-*-*-*-*-*-*-*'
-normbgcolor='#181818'
-normfgcolor='#e9e9e9'
-selbgcolor=$normbgcolor
-selfgcolor='#dd6003'
-
 surfcache=${XDG_CACHE_HOME:-~/.cache}/surf
 history=$surfcache/history
 visits=$surfcache/visits
@@ -43,11 +38,9 @@ visits=$surfcache/visits
 xid=$1
 p=$2
 
-menu="browserfield --nb $normbgcolor --nf $normfgcolor \
-       --sb $selbgcolor --sf $selfgcolor -l 10 -b"
+menu="browserfield -l 10 -b"
 
-rawmenu="sinmenu --nb $normbgcolor --nf $normfgcolor \
-       --sb $selbgcolor --sf $selfgcolor -l 10 -b"
+rawmenu="sinmenu -l 10 -b"
 
 s_get_prop() { # xprop
     xprop -id $xid $1 | cut -d '"' -f 2
