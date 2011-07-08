@@ -14,7 +14,7 @@
 #
 # Usage: `surfbrowse` _xid_ _action_
 #
-# _action_ must be one of `bookmark`, `go`, `go_raw`, `info` or `history`
+# _action_ must be one of `bookmark`, `go`, `info` or `history`
 #
 # To install, add the following to your `config.h`:
 #
@@ -25,7 +25,6 @@
 #     { 0,                              GDK_g,      spawn,      BROWSE("go") },
 #     { 0,                              GDK_b,      spawn,      BROWSE("bookmark") },
 #     { GDK_SHIFT_MASK,                 GDK_i,      spawn,      BROWSE("info") },
-#     { GDK_CONTROL_MASK|GDK_SHIFT_MASK,GDK_g,      spawn,      BROWSE("go_raw") }
 #
 # Based on a shell script by Peter John Hartman, pancake and nibble.
 
@@ -51,13 +50,7 @@ s_set_prop() { # xprop value
 }
 
 s_write_f() { # file value
-    [ -n "$2" ] && ((rm "$history" && awk '$0!=SEL' "SEL=$sel" > "$history") < "$history"; echo "$2" >> $1)
-}
-
-s_set_write_proper_uri() { # uri
-    s_set_prop WM_ICON_NAME '' || true
-    s_set_prop _SURF_GO "$1"
-    s_write_f $history "$1"
+    [ -n "$2" ] && ((rm "$history" && awk '$0!=SEL' "SEL=$2" > "$history") < "$history"; echo "$2" >> $1)
 }
 
 case "$p" in
@@ -69,59 +62,19 @@ case "$p" in
         s_write_f $history "$uri"
         ;;
     del)
-        sel=$(tac $history 2>/dev/null | $rawmenu -p 'uri [dgitwhy*]:')
+        sel=$(tac "$history" | $rawmenu -p 'delete:')
+        [ "$sel" ] || exit 1
         (rm "$history" && awk '$0!=SEL' "SEL=$sel" > "$history") < "$history"
         ;;
     history)
-        sel=$(tac $visits 2>/dev/null | $rawmenu -p 'uri from history:' | awk -F' - ' '{print $1}')
+        sel=$(tac $visits | $rawmenu -p 'uri from history:' | awk -F' - ' '{print $1}')
         s_set_prop _SURF_GO "$sel"
         ;;
-    go_raw)
-        uri=$(echo $(s_get_prop _SURF_URI) | $menu -p "uri:")
-        s_set_prop _SURF_GO "$uri"
-        ;;
     go)
-        sel=$(tac $history 2> /dev/null | $menu -p "uri [dgtwuy*]:")
-        [ -z "$sel" ] && exit
-        opt=$(echo $sel | cut -d ' ' -f 1)
-        arg=$(echo $sel | cut -d ' ' -f 2-)
-        save=0
-        case "$opt" in
-            "g")
-                uri="http://www.google.com/search?q=$arg"
-                save=1
-                ;;
-            "i")
-                uri="http://www.google.com/images?q=$arg"
-                save=1
-                ;;
-            "t")
-                uri="http://tinyurl.com/create.php?url=`s_get_prop _SURF_URI`"
-                ;;
-            "w")
-                uri="http://wikipedia.org/wiki/$arg"
-                save=1
-                ;;
-            "h")
-                uri="http://haskell.org/hoogle/?q=$arg"
-                save=1
-                ;;
-            "y")
-                uri="http://www.youtube.com/results?search_query=$arg&aq=f"
-                save=1
-                ;;
-            *)
-                uri="$sel"
-                save=2
-                ;;
-        esac
+        uri=$(browserfield < /dev/null)
+        [ "$uri" ] || exit 1
 
-    # only set the uri; don't write to file
-        [ $save -eq 0 ] && s_set_prop _SURF_GO "$uri"
-    # set the url and write exactly what the user inputed to the file
-        [ $save -eq 1 ] && (s_set_prop _SURF_GO "$uri"; s_write_f $history "$sel")
-    # try to set the uri only if it is a success
-        [ $save -eq 2 ] && s_set_write_proper_uri "$uri"
+        s_set_prop _SURF_GO "$uri"
         ;;
     *)
         echo Unknown xprop
