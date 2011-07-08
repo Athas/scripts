@@ -1,0 +1,6 @@
+#!/bin/sh
+dir=$(filesel --filename $(basename $1))
+if [ -n "$dir" ]; then
+    cd $(dirname $dir)
+    urxvt -e /bin/sh -c "wget --load-cookies ~/.cache/surf/cookies.txt '$1' -O $(basename "$dir"); sleep 3600"
+fi
