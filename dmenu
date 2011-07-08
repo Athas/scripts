@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Wrap sinmenu(1) in a dmenu-compatible interface.
+
+while [ $# -gt 1 ]; do
+    case $1 in
+        -nf) args="$args --nf=$2"; shift ;;
+        -nb) args="$args --nb=$2"; shift ;;
+        -sf) args="$args --sf=$2"; shift ;;
+        -sb) args="$args --sb=$2"; shift ;;
+        *)   args="$args '"$1"'";;
+    esac
+    shift;
+done
+
+exec sinmenu $args
