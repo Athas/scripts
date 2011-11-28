@@ -1,5 +1,5 @@
 #!/usr/bin/env rc
-
+#
 # Roll dice.  The format is the usual NdK (eg. 1d6, 2d20).  No error
 # correction is done.  The dice count is optional (eg. 1d6 is the same
 # as d6).  Multiple rolls per invocation is supported, just supply

@@ -1,5 +1,5 @@
 #!/usr/bin/env rc
-
+#
 # Given a program name and a configuration file name, copy the the
 # file to the proper XDG directory and set up a symlink at its
 # original location.  Additionally, create a script
