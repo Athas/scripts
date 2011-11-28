@@ -2,10 +2,12 @@
 -- Torben Mogensens textbook "Introduction to Compiler Design".
 --
 -- Character ranges are supported through translation to alternations.
--- Negative ranges are not supported.  The full path from regular
--- expressions over NFAs to DFAs has been implemented, and several
--- utility functions for printing the state machines as graphs (in
--- GraphViz format) are also provided.
+-- Negative ranges are not supported.  A backslash causes the
+-- following character to be read literally, even if it is normally
+-- syntactically significant.  The full path from regular expressions
+-- over NFAs to DFAs has been implemented, and several utility
+-- functions for printing the state machines as graphs (in GraphViz
+-- format) are also provided.
 --
 -- If compiled as an executable, the program acts as a very simple
 -- `grep` clone.
@@ -43,10 +45,14 @@ regexp = chainl simple (char '|' >> pure ReChoice) ReEpsilon
                     []     -> fail $ "Empty range " ++ [c1] ++ "-" ++ [c2]
                     (c:cs) -> return $ foldl ReChoice c cs
         text = chainl1 (kleene chr) (pure ReConcat)
-        clchr = noneOf "[]"
-        chr  = pure ReChar <*> noneOf "()|*[]"
-        kleene p = do s <- p
-                      (char '*' >> return (ReKleene s)) <|> return s
+        clchr = noneOf "[]" <|> char '\\' *> anyChar
+        chr  = pure ReChar <*>
+               (char '\\' *> anyChar <|> noneOf "()|*[]+")
+        kleene p = do
+          s <- p
+          (char '*' >> return (ReKleene s))
+             <|> (char '+' >> return (ReConcat s $ ReKleene s))
+             <|> return s
 
 type NFAState = Int
 data Symbol = Symbol Char
