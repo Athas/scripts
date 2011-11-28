@@ -1,5 +1,5 @@
 #!/usr/bin/env rc
-
+#
 # Extract code blocks from Literate Haskell files and print them on
 # standard output.
 #

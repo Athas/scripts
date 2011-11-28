@@ -9,7 +9,7 @@
 --
 -- If compiled as an executable, the program acts as a very simple
 -- `grep` clone.
---
+
 module Main where
 import Control.Applicative
 import Control.Monad.State
