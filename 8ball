@@ -1,5 +1,5 @@
 #!/usr/bin/env rc
-
+#
 # Query the magic 8-ball.  Prints one of the standard twenty answers
 # on standard output.
 #
