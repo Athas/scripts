@@ -34,7 +34,7 @@ data Regexp = ReChar Char
               deriving (Show)
 
 regexp :: Parser Regexp
-regexp = chainl simple (char '|' >> pure ReChoice) ReEpsilon
+regexp = chainl simple (char '|' >> pure ReChoice) ReEpsilon <* eof
   where simple = chainl term (pure ReConcat) ReEpsilon
         term = kleene (between (char '(') (char ')') regexp)
                <|> kleene (between (char '[') (char ']') clss)
