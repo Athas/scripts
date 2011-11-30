@@ -16,6 +16,7 @@ module Main where
 import Control.Applicative
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Char
 import Data.Maybe
 import Data.List
 import qualified Data.Map as M
@@ -26,13 +27,18 @@ import Text.Parsec.String
 
 import System.Environment
 
-data Regexp = ReChar Char
-            | ReEpsilon
-            | ReConcat Regexp Regexp
-            | ReChoice Regexp Regexp
-            | ReKleene Regexp
+-- | Simple regular expressions.  Note that there is no concept of
+-- matching a string, only matching a single character, which can then
+-- be combined by concatenation.
+data Regexp = ReChar Char -- ^ A literal character.
+            | ReEpsilon  -- ^ Nothing.
+            | ReConcat Regexp Regexp -- ^ Two expressions following each other.
+            | ReChoice Regexp Regexp -- ^ Either of the given expressions.
+            | ReKleene Regexp -- ^ Zero or more instances of the expression.
               deriving (Show)
 
+-- | This parser is somewhat nasty, but not very interesting.  Much of
+-- the complexity stems from handling escaping.
 regexp :: Parser Regexp
 regexp = chainl simple (char '|' >> pure ReChoice) ReEpsilon <* eof
   where simple = chainl term (pure ReConcat) ReEpsilon
@@ -54,22 +60,42 @@ regexp = chainl simple (char '|' >> pure ReChoice) ReEpsilon <* eof
              <|> (char '+' >> return (ReConcat s $ ReKleene s))
              <|> return s
 
+parseRegexp :: SourceName -> String -> Either ParseError Regexp
+parseRegexp = parse regexp
+
+-- | An NFA state is uniquely identified by an integer.
 type NFAState = Int
+-- | A transition in an NFA is either by a concrete character or an epsilon.
 data Symbol = Symbol Char
             | Epsilon
               deriving (Eq, Ord, Show)
+-- | The transitions in an NFA are a mapping from symbols to sets of
+-- states (as a single symbol may lead to one of several possible
+-- states, hence the nondeterminism).
+type NFATransitions = M.Map Symbol (S.Set NFAState)
 
-data NFA = NFA { nfaStates      :: S.Set NFAState
-               , nfaStartState  :: NFAState
-               , nfaTransitions :: M.Map NFAState (M.Map Symbol (S.Set NFAState))
-               , nfaAccepting   :: S.Set NFAState }
+data NFA = NFA { nfaStates      :: S.Set NFAState -- ^ The set of states in the NFA.
+               , nfaStartState  :: NFAState -- ^ The unique starting state.
+               , nfaTransitions :: M.Map NFAState NFATransitions
+                                   -- ^ A mapping from a state to the transitions going out of it.
+               , nfaAccepting   :: S.Set NFAState
+               -- ^ The set of accepting states (can be empty,
+               -- although such an NFA would not be very useful, and
+               -- annot be constructed via regular expressions.)
+               }
          deriving (Show)
 
+-- | We represent DFA states by sets of NFA states.  This is really
+-- unnecessary, they could be unique integers instead, but it makes
+-- the subset construction algorithm slightly more convenient.
 type DFAState = S.Set NFAState
+-- | DFA transitions are maps from concrete characters to a single
+-- state.
+type DFATransitions = M.Map Char DFAState
 
 data DFA = DFA { dfaStates      :: S.Set DFAState
                , dfaStartState  :: DFAState
-               , dfaTransitions :: M.Map DFAState (M.Map Char DFAState)
+               , dfaTransitions :: M.Map DFAState DFATransitions
                , dfaAccepting   :: S.Set DFAState }
          deriving (Show)
 
@@ -86,19 +112,28 @@ runDFA dfa str' = runDFA' str' (dfaStartState dfa)
             Just ts -> prepend c <$> (runDFA' cs =<< M.lookup c ts)
         prepend c (a,b) = (c:a, b)
 
+-- | Compute the complete epsilon closure for the given set of NFA
+-- states in the given NFA.  This is done by repeatedly calling
+-- 'eTransitions' until we reach a fixed point.
 eClosure :: NFA -> S.Set NFAState -> DFAState
 eClosure nfa t = if t' `S.isSubsetOf` t then t
                  else eClosure nfa $ t' `S.union` t
-  where t' = eClosure' nfa t
+  where t' = eTransitions nfa t
 
-eClosure' :: NFA -> S.Set NFAState -> S.Set NFAState
-eClosure' nfa ss = S.unions $ map f (S.toList ss)
+-- | @eClosure' nfa ss@ is the states reachable by the states in @ss@
+-- via epsilon-transitions, which does not necessarily include @ss@
+-- itself.
+eTransitions :: NFA -> S.Set NFAState -> S.Set NFAState
+eTransitions nfa ss = S.unions $ map f (S.toList ss)
   where f s = S.unions (map snd eTransitions)
           where eTransitions = filter ((==Epsilon) . fst) transitions
                 transitions = maybe [] M.toList $ M.lookup s $ nfaTransitions nfa
 
+-- | Convert an NFA to a DFA using subset construction.
 nfaToDFA :: NFA -> DFA
 nfaToDFA nfa = dfa' { dfaAccepting = S.filter accepting $ dfaStates dfa' }
+  -- We start by constructing a DFA consisting of nothing but the
+  -- starting state, then using nfaToDFA' to perform the actual work.
   where dfa = DFA { dfaStates = S.singleton start
                   , dfaStartState = start
                   , dfaTransitions = M.empty
@@ -121,6 +156,9 @@ nfaToDFA' nfa dfa seen (s:ss) = nfaToDFA' nfa dfa' (s:seen) ss'
         noepsilons m Epsilon _ = m
         noepsilons m (Symbol c) v = M.insert c v m
 
+-- | Convert a regular expression to an NFA.  Runs in a state monad
+-- solely so we can generate unique numbers for representing the NFA
+-- states.
 regexpToNfa :: Regexp -> NFA
 regexpToNfa regex =
   flip evalState 0 $ do
@@ -158,24 +196,57 @@ regexpToNfa regex =
                    `combine` connect from Epsilon s
                    `combine` connect s Epsilon to )
 
-compileRegexp :: SourceName -> String -> Either ParseError NFA
-compileRegexp name s = regexpToNfa <$> parse regexp name s
-
 initialMatch :: Regexp -> String -> Maybe (String, String)
 initialMatch regex str = runDFA dfa str
   where dfa = nfaToDFA $ regexpToNfa regex
 
-initialMatch_ :: String -> String -> Maybe (String, String)
-initialMatch_ regex = initialMatch regex'
-  where regex' = case parse regexp "" regex of
-                   Left e  -> error $ show e
-                   Right v -> v
+-- The real work is done.  The functions below deal with printing NFAs
+-- and DFAs in Graphviz format.
 
 match :: Regexp -> String -> Bool
 match r str =
   isJust (initialMatch r str) ||
   case str of [] -> False
               (_:cs) -> match r cs
+
+class Ord a => Next a where
+  next :: a -> a
+
+instance Next Symbol where
+  next Epsilon = Epsilon
+  next (Symbol c) = Symbol $ chr $ ord c + 1
+
+instance Next Char where
+  next c = chr (ord c + 1)
+
+ranges :: (Next a, Ord b) => [(a, b)] -> [([(a,a)], b)]
+ranges = map ranges' . M.toList . foldl arrange M.empty
+  where arrange m (k, v) = M.insertWith (++) v [k] m
+        ranges' (v, ks) = (foldl ranges'' [] $ sort ks, v)
+        ranges'' [] x = [(x,x)]
+        ranges'' ((y1,y2):ys) x
+          | next y2 == x = (y1, x) : ys
+          | otherwise = (x,x) : (y1,y2) : ys
+
+-- | Escape the double-quotes in a string so it can be put in a
+-- Graphviz string.
+escape :: String -> String
+escape [] = []
+escape ('"':s) = "\\\"" ++ escape s
+escape (c:s) = c : escape s
+
+translabel :: Next a => (a -> String) -> [(a,a)] -> String
+translabel f [(x,y)] | x == y = f x
+                     | otherwise = "[" ++ f x ++ "-" ++ f y ++ "]"
+translabel f xs = "[" ++ concatMap charclass xs ++ "]"
+  where charclass (x,y) | x == y = f x
+                        | otherwise = f x ++ "-" ++ f y
+
+statelabel :: String -> Int -> Bool -> String
+statelabel k i a =
+  k ++ "[label=\"" ++ show i ++ "\"" ++
+      (if a then ", shape=doublecircle" else "shape=circle")
+      ++ "]\n"
 
 printNFA :: NFA -> String
 printNFA nfa = evalState (execWriterT printNFA') (M.empty,0::Int)
@@ -184,22 +255,20 @@ printNFA nfa = evalState (execWriterT printNFA') (M.empty,0::Int)
           case M.lookup k s of
             Just v' -> return v'
             Nothing -> do
-              let accepting = k `S.member` nfaAccepting nfa
-                  v' = v+1
+              let v' = v+1
                   v'' = 'S' : show v'
-              tell $ v'' ++ "[label=\"" ++ show v' ++ "\"" ++
-                     (if accepting then ", shape=doublecircle" else "")
-                     ++ "]\n"
+              tell $ statelabel v'' v' $ k `S.member` nfaAccepting nfa
               put (M.insert k v'' s, v')
               return v''
         symbol Epsilon = "epsilon"
         symbol (Symbol c) = [c]
-        trans (from, ts) = forM_ (M.toList ts) $ \(sym, tos) ->
-                             forM_ (S.toList tos) $ \to -> do
-                               from' <- node from
-                               to' <- node to
-                               tell $ from' ++ "->" ++ to' ++
-                                      " [label=\"" ++ symbol sym ++ "\"]\n"
+        trans (from, ts) =
+          forM_ (ranges $ M.toList ts) $ \(clss, tos) ->
+            forM_ (S.toList tos) $ \to -> do
+              from' <- node from
+              to' <- node to
+              tell $ from' ++ "->" ++ to' ++
+                     " [label=\"" ++ escape (translabel symbol clss) ++ "\"]\n"
         printNFA' = do
           tell "digraph nfa {\nrankdir=TD\nEmp [style=invisible]\n"
           mapM_ trans $ M.toList $ nfaTransitions nfa
@@ -212,36 +281,47 @@ printDFA dfa = evalState (execWriterT printDFA') (M.empty,0::Int)
           case M.lookup k s of
             Just v' -> return v'
             Nothing -> do
-              let accepting = k `S.member` dfaAccepting dfa
-                  v' = v+1
+              let v' = v+1
                   v'' = 'S' : show v'
-              tell $ v'' ++ "[label=\"" ++ show v' ++ "\"" ++
-                     (if accepting then ", shape=doublecircle" else "")
-                     ++ "]\n"
+              tell $ statelabel v'' v $ k `S.member` dfaAccepting dfa
               put (M.insert k v'' s, v')
               return v''
-        trans (from, ts) = forM_ (M.toList ts) $ \(sym, to) -> do
-                             from' <- node from
-                             to' <- node to
-                             tell $ from' ++ "->" ++ to' ++
-                                    " [label=\"" ++ [sym] ++ "\"]\n"
+        trans (from, ts) =
+          forM_ (ranges $ M.toList ts) $ \(clss, to) -> do
+            from' <- node from
+            to' <- node to
+            tell $ from' ++ "->" ++ to' ++
+                   " [label=\"" ++ escape (translabel (:[]) clss) ++ "\"]\n"
         printDFA' = do
           tell "digraph dfa {\nrankdir=LR\nEmp [style=invisible]\n"
           mapM_ trans $ M.toList $ dfaTransitions dfa
           tell "}\n"
 
-printRegexp :: String -> String
-printRegexp regex = printDFA $ nfaToDFA nfa
-  where nfa = case compileRegexp "" regex of
+compileRegexp :: SourceName -> String -> Either ParseError NFA
+compileRegexp s r = regexpToNfa <$> parseRegexp s r
+
+printRegexpDFA :: String -> String
+printRegexpDFA regex = printDFA $ nfaToDFA nfa
+  where nfa = case compileRegexp "command-line" regex of
                 Left e  -> error $ show e
                 Right v -> v
 
+printRegexpNFA :: String -> String
+printRegexpNFA regex = printNFA nfa
+  where nfa = case compileRegexp "command-line" regex of
+                Left e  -> error $ show e
+                Right v -> v
+
+-- | Finally, a simple program entry point.
 main :: IO ()
 main = do
   args <- getArgs
   prog <- getProgName
   case args of
-    [r] -> case parse regexp "command-line" r of
-             Left e   -> error $ show e
-             Right r' -> interact (unlines . filter (match r') . lines)
-    _ -> error $ "Usage: " ++ prog ++ " regexp"
+    ["grep", r] -> grep r
+    ["nfa",  r] -> putStr $ printRegexpNFA r
+    ["dfa",  r] -> putStr $ printRegexpDFA r
+    _ -> error $ "Usage: " ++ prog ++ " <grep | nfa | dfa> regexp"
+  where grep r = case parseRegexp "command-line" r of
+                   Left e   -> error $ show e
+                   Right r' -> interact (unlines . filter (match r') . lines)
