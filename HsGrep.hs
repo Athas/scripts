@@ -120,7 +120,7 @@ eClosure nfa t = if t' `S.isSubsetOf` t then t
                  else eClosure nfa $ t' `S.union` t
   where t' = eTransitions nfa t
 
--- | @eClosure' nfa ss@ is the states reachable by the states in @ss@
+-- | @eTransitions' nfa ss@ is the states reachable by the states in @ss@
 -- via epsilon-transitions, which does not necessarily include @ss@
 -- itself.
 eTransitions :: NFA -> S.Set NFAState -> S.Set NFAState
