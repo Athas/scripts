@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Convert files names from Latin-1 to proper UTF-8.
+
+for file in "$@"; do
+    fixed=$(echo $file | iconv -f latin1 -t utf8)
+    if [ "$file" != "$fixed" ]; then
+        mv "$file" "$fixed"
+    fi
+done
