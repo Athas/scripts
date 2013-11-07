@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Upload a single file to a server and make it readable, echoing the
+# URL at which it is now available.  This is convenient if default
+# umask settings make just SCPing create an inaccessible file.
+
+server=sigkill.dk
+httproot=/var/www/sigkill.dk/
+dir=pub/
+
+set -e
+
+if [ $# != 1 ]; then
+    echo Usage: $0 '<file>'
+fi
+
+scp "$1" "$server:$httproot/$dir/$(basename $1)"
+ssh "$server" "chmod +r $httproot/$dir/$(basename $1)"
+echo "http://$server/$dir/$(basename $1)"
