@@ -5,8 +5,8 @@
 # umask settings make just SCPing create an inaccessible file.
 
 server=sigkill.dk
-httproot=/var/www/sigkill.dk/
-dir=pub/
+httproot=/var/www/sigkill.dk
+dir=pub
 
 set -e
 
