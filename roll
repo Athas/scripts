@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/sh
 #
 # Roll dice.  The format is the usual NdK (eg. 1d6, 2d20).  No error
 # correction is done.  The dice count is optional (eg. 1d6 is the same
@@ -7,7 +7,7 @@
 #
 # Usage: `roll` NdK...
 
-for (d in $*) {
+for d in "$@"; do
     echo $d
-} | awk -F d 'BEGIN{srand()} { if ($1=="") { $1=1 } print $1"d"$2;\
+done | awk -F d 'BEGIN{srand()} { if ($1=="") { $1=1 } print $1"d"$2;\
 for (i=1; i<=$1; i++) { print int(rand()*$2)+1; } }'
