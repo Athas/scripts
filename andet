@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# A script for creating aliases that are actual files in a directory
+# (which you should then add to your PATH).  This means that these
+# aliases are visible to non-shell programs, which can be handy.
+
+aliasdir=$HOME/andets
+
+set -e # Exit on failure.
+
+if [ "$(basename $0)" = unandet ]; then
+    if [ $#* -eq 1 ]; then
+        rm "$aliasdir/$1"
+        exit 0
+    else
+        echo usage: unandet ALIAS >&2
+        exit 1
+    fi
+elif [ $# -eq 0 ]; then
+    if ! [ $(ls andets|wc -l) = 0 ]; then
+        for alias in $aliasdir/*; do
+            echo "$(basename "$alias")=$(cat "$alias")"
+        done
+    fi
+else
+    name=$1
+    shift
+    echo $* '"$@"' > "$aliasdir/$name"
+    chmod +x "$aliasdir/$name"
+    exit 0
+fi
