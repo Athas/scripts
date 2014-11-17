@@ -9,7 +9,7 @@ aliasdir=$HOME/andets
 set -e # Exit on failure.
 
 if [ "$(basename $0)" = unandet ]; then
-    if [ $#* -eq 1 ]; then
+    if [ $# -eq 1 ]; then
         rm "$aliasdir/$1"
         exit 0
     else
