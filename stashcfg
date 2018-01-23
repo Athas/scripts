@@ -1,4 +1,4 @@
-#!/usr/bin/env rc
+#!/bin/sh
 #
 # Given a program name and a configuration file name, copy the the
 # file to the proper XDG directory and set up a symlink at its
@@ -8,41 +8,46 @@
 #
 # Always run this program from your home directory.
 
-flag e +
+set -e # Die on error
 
-if (test $#* -lt 2) {
-   echo Usage: `{basename $0} progname files... >[2=1]
+if [ $# -lt 2 ]; then
+   echo "Usage: $(basename $0) progname files..." 2>&1
    exit 1
-}
-pwd=`{pwd}
-if (test $"home '!=' $"pwd) {
-   echo Run `{basename $0} from your home directory: $home >[2=1]
-   exit 1
-}
+fi
 
-if (~ $#XDG_CONFIG_HOME 0) config=$home/.config
-if not config=$XDG_CONFIG_HOME
+pwd=$(pwd)
+if [ "$HOME" != "$pwd" ]; then
+   echo "Run $(basename $0) from your home directory: $HOME" 2>&1
+   exit 1
+fi
+
+if ! [ "$XDG_CONFIG_HOME" ]; then
+  config=$HOME/.config
+fi
+if ! [ "$config" ]; then
+    config=$XDG_CONFIG_HOME
+fi
 
 dir=$config/$1
 mkdir -p $dir
+shift
 
-for (sfile in $*(2-)) {
-    if (test ! -r $sfile) {
-       echo Cannot read from $sfile
-       exit
-    }
-    btfile=`{echo `{basename $sfile}|sed 's/^\.//'} # Remove leading punctuation
-    tfile=$dir/$"btfile
+for sfile in $*; do
+    if ! [ -r "$sfile" ]; then
+       echo "Cannot read from $sfile" 2>&1
+    fi
+    btfile=${sfile#.} # Remove leading punctuation
+    tfile="$dir"/"$btfile"
 
-    mv $sfile $tfile
-    ln -s $tfile $sfile
-    if (test ! -w $config/mklinks.sh) {
+    mv "$sfile" "$tfile"
+    ln -s "$tfile" "$sfile"
+    if ! [ -w "$config/mklinks.sh" ]; then
         echo '#!/bin/sh'
         echo 'if [ "$HOME" != "$(pwd)" ]; then'
         echo 'echo Run the script from your home directory.'
         echo 'exit 1'
         echo 'fi'
         echo 'dir=${XDG_CONFIG_HOME:-~/.config}'
-    } >> $config/mklinks.sh
-    echo ln -s '$dir/'$1'/'''$btfile'''' ''''$sfile'''' >> $config/mklinks.sh
-}
+    fi >> "$config/mklinks.sh"
+    echo ln -s "'$dir/$1/$btfile' '$sfile'" >> "$config/mklinks.sh"
+done
