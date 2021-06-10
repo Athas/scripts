@@ -1,0 +1,15 @@
+#!/bin/sh
+
+nix-shell \
+-p rocm-opencl-runtime \
+-p python39 \
+-p python39Packages.pyopencl \
+-p python39Packages.setuptools \
+-p python39Packages.setuptools \
+-p python39Packages.purepng \
+-p pkgconfig \
+-p SDL2 \
+-p SDL2_ttf \
+-p SDL2_mixer \
+-p SDL2_gfx \
+--run "$*"

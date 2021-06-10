@@ -9,12 +9,5 @@ httproot=/var/www/htdocs/sigkill.dk
 dir=junk
 
 set -e
-
-if [ $# != 1 ]; then
-    echo Usage: $0 '<file>'
-fi
-
-scp -r "$1" "$server:$httproot/$dir/\"$(basename "$1")\""
-ssh "$server" "find $httproot/$dir/\"$(basename "$1")\" -type f -exec chmod +r {} \;"
-ssh "$server" "find $httproot/$dir/\"$(basename "$1")\" -type d -exec chmod +rx {} \;"
+rsync -uzPr --chmod=F644,D755 "$@" "$server:$httproot/$dir/"
 echo "http://$server/$dir/$(basename "$1")"
