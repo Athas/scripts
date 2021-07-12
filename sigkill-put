@@ -7,7 +7,9 @@
 server=sigkill.dk
 httproot=/var/www/htdocs/sigkill.dk
 dir=junk
+src=$(echo "$@" | sed 's!/$!!')
 
 set -e
-rsync -uzPr --chmod=F644,D755 "$@" "$server:$httproot/$dir/"
+set -x
+rsync -uzPr --chmod=F644,D755 "$src" "$server:$httproot/$dir/"
 echo "http://$server/$dir/$(basename "$1")"
